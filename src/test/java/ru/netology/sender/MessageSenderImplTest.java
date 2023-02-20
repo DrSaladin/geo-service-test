@@ -18,6 +18,7 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static ru.netology.entity.Country.RUSSIA;
+import static ru.netology.entity.Country.USA;
 
 
 public class MessageSenderImplTest {
@@ -31,7 +32,7 @@ public class MessageSenderImplTest {
   public void init_test_preparation() {
     geoService = Mockito.mock(GeoServiceImpl.class);
     localizationService = Mockito.mock(LocalizationServiceImpl.class);
-    messageSender = Mockito.mock(MessageSenderImpl.class);
+    messageSender = new MessageSenderImpl(geoService, localizationService);
     System.setOut(new PrintStream(outputStreamCaptor));
   }
 
@@ -47,49 +48,29 @@ public class MessageSenderImplTest {
   public void get_russian_message_test() {
     String ip = "172.123.12.19";
     String expectedMessage = "Отправлено сообщение: Добро пожаловать";
-    String languageError = "Возвращен некорректный язык перевода";
     String messageError = "Возвращено некорректное сообщение";
 
     Map<String, String> headers = new HashMap<String, String>();
     headers.put(MessageSenderImpl.IP_ADDRESS_HEADER, ip);
-
     Mockito.when(geoService.byIp(ip)).thenReturn(new Location("Moscow", RUSSIA, null, 0));
     Mockito.when(localizationService.locale(RUSSIA)).thenReturn("Добро пожаловать");
-    Mockito.when(messageSender.send(headers)).thenAnswer(printOut -> {
-      System.out.println(expectedMessage);
-      return String.valueOf(RUSSIA);
-    });
 
-    assertAll(
-      () -> Assertions.assertEquals(String.valueOf(RUSSIA), messageSender.send(headers),
-        languageError),
-      () -> Assertions.assertEquals(expectedMessage, outputStreamCaptor.toString().trim(),
-        messageError)
-    );
+    messageSender.send(headers);
+    Assertions.assertEquals(expectedMessage, outputStreamCaptor.toString().trim(), messageError);
   }
 
   @Test
   public void get_english_message_test() {
     String ip = "96.44.183.149";
     String expectedMessage = "Отправлено сообщение: Welcome";
-    String languageError = "Возвращен некорректный язык перевода";
     String messageError = "Возвращено некорректное сообщение";
 
     Map<String, String> headers = new HashMap<String, String>();
     headers.put(MessageSenderImpl.IP_ADDRESS_HEADER, ip);
+    Mockito.when(geoService.byIp(ip)).thenReturn(new Location("New York", USA, null,  0));
+    Mockito.when(localizationService.locale(USA)).thenReturn("Welcome");
 
-    Mockito.when(geoService.byIp(ip)).thenReturn(new Location("New York", Country.USA, null,  0));
-    Mockito.when(localizationService.locale(RUSSIA)).thenReturn("Welcome");
-    Mockito.when(messageSender.send(headers)).thenAnswer(printOut -> {
-      System.out.println(expectedMessage);
-      return String.valueOf(RUSSIA);
-    });
-
-    assertAll(
-      () -> Assertions.assertEquals(String.valueOf(RUSSIA), messageSender.send(headers),
-        languageError),
-      () -> Assertions.assertEquals(expectedMessage, outputStreamCaptor.toString().trim(),
-        messageError)
-    );
+    messageSender.send(headers);
+    Assertions.assertEquals(expectedMessage, outputStreamCaptor.toString().trim(), messageError);
   }
 }
